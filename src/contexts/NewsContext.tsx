@@ -1,5 +1,7 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { useNews } from '../hooks/useNews';
+import { toast } from '@/components/ui/use-toast';
 
 export type NewsCategory = 
   | 'general' 
@@ -49,49 +51,22 @@ export const useNewsContext = () => {
 };
 
 export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>('general');
-  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const { data: articles = [], isLoading, error, refetch } = useNews(selectedCategory);
 
-  // Function to fetch news data
-  const fetchNews = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Manual refresh function with feedback toast
+  const refreshNews = async () => {
+    toast({
+      title: "Refreshing news",
+      description: `Fetching the latest ${selectedCategory} news...`,
+    });
     
-    try {
-      // In a real app, this would call your API service
-      // For now, we'll use mock data
-      const mockArticles = await import('../services/mockNews').then(m => m.getMockNews(selectedCategory));
-      setArticles(mockArticles);
-    } catch (err) {
-      console.error('Error fetching news:', err);
-      setError('Failed to load news. Please try again later.');
-    } finally {
-      setIsLoading(false);
-      setLastFetchTime(Date.now());
-    }
-  };
-
-  // Initial fetch
-  useEffect(() => {
-    fetchNews();
+    await refetch();
     
-    // Set up hourly refresh
-    const interval = setInterval(() => {
-      fetchNews();
-    }, 60 * 60 * 1000); // 1 hour in milliseconds
-    
-    return () => clearInterval(interval);
-  }, [selectedCategory]);
-
-  // Manual refresh function
-  const refreshNews = () => {
-    // Only refresh if at least 1 minute has passed since last fetch
-    if (Date.now() - lastFetchTime > 60 * 1000) {
-      fetchNews();
-    }
+    toast({
+      title: "News refreshed",
+      description: "The latest news has been loaded",
+    });
   };
 
   return (
@@ -99,7 +74,7 @@ export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         articles,
         isLoading,
-        error,
+        error: error ? String(error) : null,
         selectedCategory,
         setSelectedCategory,
         refreshNews

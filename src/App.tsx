@@ -7,11 +7,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
+// Create QueryClient with better error handling
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1, // Only retry failed requests once
+      onError: (error) => {
+        console.error('Query error:', error);
+      }
     },
   },
 });
