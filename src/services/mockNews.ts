@@ -103,7 +103,7 @@ const mockNewsData: Record<NewsCategory, Article[]> = {
       id: uuidv4(),
       title: 'Underdog Team Wins Championship in Stunning Upset',
       description: 'First title in franchise history comes after remarkable playoff run',
-      content: 'In what sports analysts are calling one of the greatest upsets in championship history, the underdog Metro Knights have defeated the heavily favored Coastal Warriors to win their first ever national title. The Knights, who entered the playoffs as the lowest-ranked qualifying team, completed their improbable run with a dramatic come-from-behind victory in the decisive final game. The team's young star player, who was nearly cut during preseason, scored the winning points with just 3 seconds remaining on the clock. Celebrations erupted across the Knights\' home city as thousands of fans took to the streets to celebrate the historic victory.',
+      content: "In what sports analysts are calling one of the greatest upsets in championship history, the underdog Metro Knights have defeated the heavily favored Coastal Warriors to win their first ever national title. The Knights, who entered the playoffs as the lowest-ranked qualifying team, completed their improbable run with a dramatic come-from-behind victory in the decisive final game. The team's young star player, who was nearly cut during preseason, scored the winning points with just 3 seconds remaining on the clock. Celebrations erupted across the Knights' home city as thousands of fans took to the streets to celebrate the historic victory.",
       url: 'https://example.com/championship-upset',
       urlToImage: 'https://source.unsplash.com/random/800x600/?sports,victory',
       publishedAt: new Date(Date.now() - 21600000).toISOString(),
