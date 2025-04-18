@@ -1,6 +1,5 @@
-
-import { Article, NewsCategory } from '../contexts/NewsContext';
 import { v4 as uuidv4 } from 'uuid';
+import { Article, NewsCategory } from '../contexts/NewsContext';
 
 // Mock news data
 const mockNewsData: Record<NewsCategory, Article[]> = {
