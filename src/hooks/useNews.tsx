@@ -4,37 +4,48 @@ import { NewsCategory, Article } from '../contexts/NewsContext';
 import { getMockNews } from '../services/mockNews';
 import { processArticleBatch } from '../services/aiService';
 
-// NewsAPI.org API key - Note: This is a sample key and should be replaced with a real one
-const NEWS_API_KEY = '1234567890abcdef1234567890abcdef'; // Replace with your actual API key
+// GNews API configuration
+const GNEWS_API_KEY = '3dde7ff938e5adaf1a80221f7d854cfa';
 
-// Function to fetch real news based on category
+// Function to fetch real news from GNews API
 const fetchRealNews = async (category: NewsCategory): Promise<Article[]> => {
   try {
-    // Map our category to NewsAPI categories
-    const apiCategory = category === 'general' ? '' : `&category=${category}`;
+    // Map our category to GNews topics
+    const topicMap: Record<NewsCategory, string> = {
+      'general': 'top-headlines',
+      'world': 'world',
+      'business': 'business',
+      'technology': 'technology',
+      'entertainment': 'entertainment',
+      'sports': 'sports',
+      'science': 'science',
+      'health': 'health'
+    };
+
+    const apiCategory = topicMap[category] || 'top-headlines';
     
     const response = await fetch(
-      `https://newsapi.org/v2/top-headlines?country=us${apiCategory}&apiKey=${NEWS_API_KEY}`
+      `https://gnews.io/api/v4/${apiCategory}?apikey=${GNEWS_API_KEY}&lang=en&max=10`
     );
     
     if (!response.ok) {
-      throw new Error('Failed to fetch news');
+      throw new Error('Failed to fetch news from GNews API');
     }
     
     const data = await response.json();
     
     // Transform the API response to match our Article type
     return data.articles.map((article: any, index: number) => ({
-      id: `${category}-${index}-${Date.now()}`,
+      id: `gnews-${category}-${index}-${Date.now()}`,
       title: article.title || 'No title available',
       description: article.description || 'No description available',
       content: article.content || article.description || 'No content available',
       url: article.url || '#',
-      urlToImage: article.urlToImage || 'https://source.unsplash.com/random/800x600/?news',
+      urlToImage: article.image || 'https://source.unsplash.com/random/800x600/?news',
       publishedAt: article.publishedAt || new Date().toISOString(),
       source: {
-        id: article.source?.id || null,
-        name: article.source?.name || 'Unknown Source'
+        id: null,
+        name: article.source.name || 'GNews'
       },
       category: category
     }));
@@ -50,7 +61,7 @@ export const useNews = (category: NewsCategory) => {
   return useQuery({
     queryKey: ['news', category],
     queryFn: async () => {
-      // Fetch news data - use real news API with fallback to mock data
+      // Fetch news data - use GNews API with fallback to mock data
       const articles = await fetchRealNews(category);
       
       // Process with AI for sentiment and fake news detection
@@ -62,3 +73,4 @@ export const useNews = (category: NewsCategory) => {
     staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
   });
 };
+
