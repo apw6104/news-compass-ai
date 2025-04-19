@@ -1,126 +1,66 @@
 
-/**
- * Simple fake news detection algorithm
- * In a production app, this would use a more sophisticated ML model
- */
+// Temporary storage for API key
+let geminiApiKey = '';
 
-// Signs of potential fake news
-const clickbaitPhrases = [
-  'you won\'t believe', 'shocking', 'mind blowing', 'incredible', 'unbelievable',
-  'shocking truth', 'what happened next', 'jaw dropping', 'scientists baffled',
-  'doctors hate', 'one weird trick', 'this simple', 'secret they don\'t want you to know',
-  'they don\'t want you to know', 'miracle', 'revolutionary', 'game-changing',
-  'this will change your life', 'you\'ll never look at the same way again'
-];
-
-const emotionalLanguage = [
-  'outrageous', 'terrible', 'horrific', 'disgusting', 'appalling', 'atrocious',
-  'scandalous', 'sickening', 'devastating', 'horrendous', 'frightening', 'terrifying',
-  'mind-numbing', 'insane', 'crazy', 'unbelievable', 'astonishing', 'astounding',
-  'sensational', 'spectacular', 'remarkable', 'extraordinary', 'stupendous', 'tremendous'
-];
-
-const conspiracyTerms = [
-  'conspiracy', 'coverup', 'cover up', 'cover-up', 'government is hiding',
-  'they don\'t want you to know', 'what they don\'t tell you', 'secret agenda',
-  'hidden agenda', 'shadow government', 'deep state', 'illuminati', 'new world order',
-  'controlled by', 'puppet', 'puppets', 'orchestrated', 'propaganda', 'false flag'
-];
-
-// Detect potential clickbait in title
-const detectClickbait = (title: string): number => {
-  const lowerTitle = title.toLowerCase();
-  let count = 0;
-  
-  clickbaitPhrases.forEach(phrase => {
-    if (lowerTitle.includes(phrase.toLowerCase())) {
-      count++;
-    }
-  });
-  
-  return count / clickbaitPhrases.length;
+// Function to set the API key
+export const setGeminiApiKey = (key: string) => {
+  geminiApiKey = key;
 };
 
-// Detect excessive emotional language
-const detectEmotionalLanguage = (text: string): number => {
-  const lowerText = text.toLowerCase();
-  let count = 0;
-  
-  emotionalLanguage.forEach(term => {
-    if (lowerText.includes(term.toLowerCase())) {
-      count++;
+export const detectFakeNews = async (title: string, content: string, source: string): Promise<number> => {
+  try {
+    // If no API key is set, return default value
+    if (!geminiApiKey) {
+      console.warn('No Gemini API key provided');
+      return 0.5;
     }
-  });
-  
-  // Normalize based on text length
-  const words = text.split(/\s+/).length;
-  return count / Math.min(words / 10, emotionalLanguage.length);
-};
 
-// Detect conspiracy theory language
-const detectConspiracyLanguage = (text: string): number => {
-  const lowerText = text.toLowerCase();
-  let count = 0;
-  
-  conspiracyTerms.forEach(term => {
-    if (lowerText.includes(term.toLowerCase())) {
-      count++;
-    }
-  });
-  
-  // Normalize based on text length
-  const words = text.split(/\s+/).length;
-  return count / Math.min(words / 20, conspiracyTerms.length);
-};
+    const prompt = `Analyze this news article for credibility. Return only a number between 0 and 1, where 0 means completely reliable and 1 means likely fake news.
 
-// Check for source credibility indicators
-const checkSourceCredibility = (source: string): number => {
-  // List of credible news source keywords (this would be much more comprehensive in production)
-  const credibleSources = ['times', 'post', 'news', 'bbc', 'reuters', 'associated press', 'ap', 'journal'];
-  
-  const lowerSource = source.toLowerCase();
-  for (const credible of credibleSources) {
-    if (lowerSource.includes(credible)) {
-      return 0.3; // Reduce fake probability if from credible source
+Title: ${title}
+Content: ${content}
+Source: ${source}
+
+Consider factors like:
+- Sensationalism in the title
+- Emotional language
+- Source credibility
+- Presence of verifiable facts
+- Writing style and professionalism`;
+
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${geminiApiKey}`
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          topK: 1,
+          topP: 1,
+          maxOutputTokens: 1024,
+        },
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to analyze with Gemini AI');
     }
+
+    const data = await response.json();
+    const result = data.candidates[0]?.content?.parts[0]?.text;
+    
+    // Extract the number from the response
+    const score = parseFloat(result);
+    return isNaN(score) ? 0.5 : Math.min(Math.max(score, 0), 1);
+  } catch (error) {
+    console.error('Error in fake news detection:', error);
+    return 0.5; // Default score on error
   }
-  
-  return 0.6; // Higher starting point for unknown sources
-};
-
-// Check article length - very short articles are more suspicious
-const checkArticleLength = (content: string): number => {
-  const words = content.split(/\s+/).length;
-  if (words < 100) {
-    return 0.7; // Very short articles are suspicious
-  } else if (words < 300) {
-    return 0.5; // Short articles are somewhat suspicious
-  } else {
-    return 0.3; // Longer articles tend to be more credible
-  }
-};
-
-// Main function to detect fake news probability
-export const detectFakeNews = (
-  title: string, 
-  content: string,
-  sourceName: string
-): number => {
-  // Calculate individual risk factors
-  const clickbaitScore = detectClickbait(title) * 0.25;
-  const emotionalScore = detectEmotionalLanguage(content) * 0.2;
-  const conspiracyScore = detectConspiracyLanguage(content) * 0.3;
-  const sourceScore = checkSourceCredibility(sourceName) * 0.15;
-  const lengthScore = checkArticleLength(content) * 0.1;
-  
-  // Calculate weighted average
-  const fakeProbability = 
-    clickbaitScore + 
-    emotionalScore + 
-    conspiracyScore + 
-    sourceScore + 
-    lengthScore;
-  
-  // Return probability capped between 0 and 1
-  return Math.min(Math.max(fakeProbability, 0), 1);
 };
